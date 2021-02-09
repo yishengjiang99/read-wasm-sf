@@ -1,0 +1,17 @@
+{
+  "name": "read-wasm-sf2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "read_sf.js",
+  "scripts": {
+    "build": "node_modules/.bin/wa compile read.c -o re2ad.wasm"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^14.14.25",
+    "webassembly": "^0.11.0"
+  },
+  "dependencies": {}
+}
