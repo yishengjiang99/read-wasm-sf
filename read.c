@@ -1,81 +1,82 @@
-
-#define TSF_IMPLEMENTATION
-#define TSF_NO_STDIO
-#include "tsf.h"
-#include <stdint.h>
+#include "emscripten.h"
 #include <math.h>
-static tsf *f;
+#define TSF_IMPLEMENTATION
+#include "tsf.h"
+#include <assert.h>
 
-	
-static uint8_t *srcPtr;
-static float pow2over2table[12] = {
-	1,
-	1.0594630943592953,
-	1.122462048309373,
-	1.189207115002721,
-	1.2599210498948732,
-	1.3348398541700344,
-	1.4983070768766815,
-	1.5874010519681994,
-	1.6817928305074292,
-	1.7817974362806788,
-	1.887748625363387
-	};
 
-unsigned int ssample(float *ptr, int preset, int midi, int vel, int n);
-float poww(int n, int b);
-float lerp(float v0, float v1, float t);
-	
-struct tsf *load_sf(uint8_t *ptr, int length)
-{
-	f = tsf_load_memory(ptr, length);
-	srcPtr = ptr;
-	return f;
+EMSCRIPTEN_KEEPALIVE 
+static tsf *g_tsf;
+
+EMSCRIPTEN_KEEPALIVE 
+void init_tsf(){
+  g_tsf =tsf_load_filename("file.sf2");
 }
 
-unsigned int ssample(float *ptr, int preset, int midi, int vel, int n)
+EMSCRIPTEN_KEEPALIVE
+void read_sf(void *buffer, int size)
 {
-
-	double pos;
-	struct tsf_region r;
-	struct tsf_preset p = f->presets[preset];
-	for (int j = 0; j < p.regionNum; j++)
-	{
-		r = p.regions[j];
-		if (r.lokey <= midi && r.hikey >= midi && r.lovel <= vel && r.hivel >= vel)
-		{
-			pos = r.offset;
-			float shift = poww(2, (midi*100 - r.pitch_keycenter*100) / 1200);
-			
-			int loopr = (r.loop_end - r.loop_start);
-
-			while (n--)
-			{
-				uint8_t tmp = (uint8_t)pos;
-				*ptr++ = lerp(f->fontSamples[tmp], f->fontSamples[tmp + 1], pos-tmp);
-
-				if (pos > r.loop_end + 1)
-					pos -= loopr;
-			}
-		}
-	}
-	return 0;
-}
-float lerp(float v0, float v1, float t)
-{
-	return v0 + t * (v1 - v0);
+  g_tsf = tsf_load_memory(buffer, size);
+  printf( "fontsamplle size %lu", sizeof(g_tsf->fontSamples));
+  printf( "fontsamplle size %lu", sizeof(g_tsf->presetNum));
 }
 
- 
-float poww(base, exp){
-	if(base!=2) return powf(base,exp);
-	
-	int intv=1;
-	int fraction=0;
-	while(exp > 2){
-		intv++;
-		exp = exp >> 1;
-	}
-	return pow2over2table[~~(exp*12)];
 
- }
+EMSCRIPTEN_KEEPALIVE
+struct tsf_region get_legion(int presetId, int midi, float velocity)
+{
+
+  int diff = 128; /*scalar*/ /* integer difference between sample note and note we are trying to produce*/
+  struct tsf_region r;       /* the preset region we render from*/
+
+  struct tsf_preset p; /* the preset, a preset has a number of regions with differena pitches etc. we vary the playback loop here to make shift to some midi number */
+
+  p = g_tsf->presets[presetId];
+  for (int j = 0; j < p.regionNum; j++)
+  {
+    r = p.regions[j];
+    if (p.regions[j].lokey <= midi && p.regions[j].hikey >= midi && p.regions[j].lovel <= velocity && p.regions[j].hivel >= velocity)
+    {
+      if (abs(midi - p.regions[j].pitch_keycenter) < diff)
+      {
+        r = p.regions[j];
+        diff = abs(midi - r.pitch_keycenter);
+      }
+    }
+  }
+  return r;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void load_sound(float* buffout, int presetId, int midi, float velocity, int size)
+{
+
+	if(!g_tsf->presetNum) g_tsf = tsf_load_filename("/data/3file.sf2");
+  int diff = 128; /*scalar*/ /* integer difference between sample note and note we are trying to produce*/
+  struct tsf_region r;       /* the preset region we render from*/
+
+  struct tsf_preset p; /* the preset, a preset has a number of regions with differena pitches etc. we vary the playback loop here to make shift to some midi number */
+
+  p = g_tsf->presets[presetId];
+  for (int j = 0; j < p.regionNum; j++)
+  {
+    r = p.regions[j];
+    if (p.regions[j].lokey <= midi && p.regions[j].hikey >= midi && p.regions[j].lovel <= velocity && p.regions[j].hivel >= velocity)
+    {
+      if (abs(midi - p.regions[j].pitch_keycenter) < diff)
+      {
+        r = p.regions[j];
+        diff = abs(midi - r.pitch_keycenter);
+      }
+    }
+  }
+  float *input = g_tsf->fontSamples;  
+  float *output = buffout;
+	TSF_BOOL isLooping = (r.loop_start < r.loop_end);
+  double gain = -10 - r.attenuation - tsf_gainToDecibels(1.0f / velocity);
+  unsigned int pos = r.offset;
+  
+  while(size-- > 0){
+    *output++ = input[pos++];
+  }
+}
