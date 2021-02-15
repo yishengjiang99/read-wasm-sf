@@ -267,7 +267,7 @@ Module['ready'] = new Promise(function(resolve, reject) {
     }
   
    }
-   loadPackage({"files": [{"filename": "/file.sf2", "start": 0, "end": 314640, "audio": 0}], "remote_package_size": 314640, "package_uuid": "13f2f28e-6b70-4845-a8ed-0d00cbabca4c"});
+   loadPackage({"files": [{"filename": "/file.sf2", "start": 0, "end": 314640, "audio": 0}], "remote_package_size": 314640, "package_uuid": "d43c3334-1d3f-46ae-88de-9f65a7541a89"});
   
   })();
   
@@ -1383,16 +1383,16 @@ function updateGlobalBufferAndViews(buf) {
   Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
 }
 
-var STACK_BASE = 5246784,
+var STACK_BASE = 5246928,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 3904;
+    STACK_MAX = 4048;
 
 assert(STACK_BASE % 16 === 0, 'stack must start aligned');
 
 var TOTAL_STACK = 5242880;
 if (Module['TOTAL_STACK']) assert(TOTAL_STACK === Module['TOTAL_STACK'], 'the stack size can no longer be determined at runtime')
 
-var INITIAL_INITIAL_MEMORY = Module['INITIAL_MEMORY'] || 587202560;if (!Object.getOwnPropertyDescriptor(Module, 'INITIAL_MEMORY')) Object.defineProperty(Module, 'INITIAL_MEMORY', { configurable: true, get: function() { abort('Module.INITIAL_MEMORY has been replaced with plain INITIAL_INITIAL_MEMORY (the initial value can be provided on Module, but after startup the value is only looked for on a local variable of that name)') } });
+var INITIAL_INITIAL_MEMORY = Module['INITIAL_MEMORY'] || 58720256;if (!Object.getOwnPropertyDescriptor(Module, 'INITIAL_MEMORY')) Object.defineProperty(Module, 'INITIAL_MEMORY', { configurable: true, get: function() { abort('Module.INITIAL_MEMORY has been replaced with plain INITIAL_INITIAL_MEMORY (the initial value can be provided on Module, but after startup the value is only looked for on a local variable of that name)') } });
 
 assert(INITIAL_INITIAL_MEMORY >= TOTAL_STACK, 'INITIAL_MEMORY should be larger than TOTAL_STACK, was ' + INITIAL_INITIAL_MEMORY + '! (TOTAL_STACK=' + TOTAL_STACK + ')');
 
@@ -4661,6 +4661,9 @@ var _read_sf = Module["_read_sf"] = createExportWrapper("read_sf");
 
 /** @type {function(...*):?} */
 var _get_legion = Module["_get_legion"] = createExportWrapper("get_legion");
+
+/** @type {function(...*):?} */
+var _lerp = Module["_lerp"] = createExportWrapper("lerp");
 
 /** @type {function(...*):?} */
 var _load_sound = Module["_load_sound"] = createExportWrapper("load_sound");
