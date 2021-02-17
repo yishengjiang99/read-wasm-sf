@@ -3,7 +3,6 @@
 #define TSF_IMPLEMENTATION
 #include "tsf.h"
 #include <assert.h>
-
 static float pow2over2table[12] = {
     1,
     1.0594630943592953,
@@ -18,11 +17,30 @@ static float pow2over2table[12] = {
     1.7817974362806788,
     1.887748625363387};
 
+float ratioc(int rdiff)
+{
+    float ratio = 1;
+    while (rdiff > 12)
+    {
+        ratio *= 2;
+        rdiff -= 12;
+    }
+    while (rdiff < -12)
+    {
+        ratio /= 12;
+        rdiff += 12;
+    }
+
+    ratio = rdiff >= 0 ? ratio * pow2over2table[rdiff] : ratio / pow2over2table[-1 * rdiff];
+    return ratio;
+}
+float hermite4(float frac_pos, float xm1, float x0, float x1, float x2);
+
 EMSCRIPTEN_KEEPALIVE
 static tsf *g_tsf;
 
 EMSCRIPTEN_KEEPALIVE
-void init_tsf()
+void init_tsf(char *string)
 {
     g_tsf = tsf_load_filename("file.sf2");
 }
@@ -39,30 +57,34 @@ EMSCRIPTEN_KEEPALIVE
 struct tsf_region get_legion(int presetId, int midi, float velocity)
 {
 
-    int diff = 128; /*scalar*/ /* integer difference between sample note and note we are trying to produce*/
-    struct tsf_region r;       /* the preset region we render from*/
+    struct tsf_region r; /* the preset region we render from*/
 
     struct tsf_preset p; /* the preset, a preset has a number of regions with differena pitches etc. we vary the playback loop here to make shift to some midi number */
+
+    int rdiff = 128; /*scalar*/ /* integer difference between sample note and note we are trying to produce*/
 
     p = g_tsf->presets[presetId];
     for (int j = 0; j < p.regionNum; j++)
     {
-        r = p.regions[j];
-        if (p.regions[j]
-                    .lokey <= midi &&
-            p.regions[j]
-                    .hikey >= midi &&
-            p.regions[j]
-                    .lovel <= velocity &&
-            p.regions[j]
-                    .hivel >= velocity)
+        if (abs(p.regions[j].pitch_keycenter - midi) > 5)
+            continue;
+
+        if (p.regions[j].hikey < midi)
+            continue;
+        if (p.regions[j].lovel > velocity)
+            continue;
+        if (p.regions[j].hivel < velocity)
+            continue;
+
+        if (abs(midi - p.regions[j].pitch_keycenter) < rdiff)
         {
-            if (abs(midi - p.regions[j]
-                               .pitch_keycenter) < diff)
-            {
-                r = p.regions[j];
-                diff = abs(midi - r.pitch_keycenter);
-            }
+
+            printf("\n*** note: %d ***\npitch center:%d\nspeed lo:%d \nhi %d\nsample rate: %d\n",
+                   midi, p.regions[j].pitch_keycenter, (int)(p.regions[j].lovel), (int)(p.regions[j].hivel), p.regions[j].sample_rate);
+
+            r = p.regions[j];
+
+            rdiff = abs(midi - r.pitch_keycenter);
         }
     }
     return r;
@@ -81,60 +103,81 @@ void load_sound(float *buffout, int presetId, int midi, int velocity, int size)
     struct tsf_region r;        /* the preset region we render from*/
     struct tsf_preset p;
     p = g_tsf->presets[presetId];
-
-    for (int diff = 10; diff < 127; diff += 10)
+    for (int j = 0; j < p.regionNum; j++)
     {
-        for (int j = 0; j < p.regionNum; j++)
+        if (abs(p.regions[j].pitch_keycenter - midi) > 10)
+            continue;
+
+        if (p.regions[j].hikey < midi)
+            continue;
+        if (p.regions[j].lovel > velocity)
+            continue;
+        if (p.regions[j].hivel < velocity)
+            continue;
+
+        if (abs(midi - p.regions[j].pitch_keycenter) < rdiff)
         {
-            if (p.regions[j].lokey > midi)
-                continue;
-            if (p.regions[j].hikey < midi)
-                continue;
-            if (p.regions[j].lovel > velocity)
-                continue;
-            if (p.regions[j].hivel < velocity)
-                continue;
-            if (velocity > p.regions[j].lovel + diff)
-                continue;
-            if (abs(midi - p.regions[j].pitch_keycenter) < rdiff)
-            {
 
-                printf("\n*** note: %d ***\npitch center:%d\nspeed lo:%d \nhi %d\nsample rate: %d\n",
-                       midi, p.regions[j].pitch_keycenter, (int)(p.regions[j].lovel), (int)(p.regions[j].hivel), p.regions[j].sample_rate);
+            printf("\n*** note: %d ***\npitch center:%d\nspeed lo:%d \nhi %d\nsample rate: %d\n",
+                   midi, p.regions[j].pitch_keycenter, (int)(p.regions[j].lovel), (int)(p.regions[j].hivel), p.regions[j].sample_rate);
 
-                r = p.regions[j];
+            r = p.regions[j];
 
-                rdiff = abs(midi - r.pitch_keycenter);
-            }
+            rdiff = abs(midi - r.pitch_keycenter);
         }
-        if (rdiff < 128)
-            break;
     }
 
-    float absratio = 1;
-    while (rdiff > 12)
-    {
-        absratio *= 2;
-        rdiff -= 12;
-    }
-    absratio *= pow2over2table[rdiff];
-    float ratio = (midi > r.pitch_keycenter ? absratio : 1 / absratio) * r.sample_rate / 48000;
-    float shift = 1;
     int loopr = (r.loop_end - r.loop_start);
     int iterator = r.offset;
     double gain = -10 - r.attenuation - tsf_gainToDecibels(1.0f / velocity);
-    fprintf(stdout, "\nplayback ratio %f %f \n**** </%d> *** \n", ratio, gain,midi);
+    // *buffout++ = 1;
+    // *buffout++ = r.sample_rate;
+    // *buffout++ = r.ampenv.attack;
+    // *buffout++ = r.ampenv.hold;
+    // *buffout++ = r.ampenv.decay;
+    // *buffout++ = r.ampenv.sustain;
+    // *buffout++ = r.ampenv.release;
+    // *buffout++ = r.initialFilterFc;
+    // *buffout++ = r.initialFilterQ;
 
-    while (size-- >= 1)
+    int pos = 0;
+    float shift = 0;
+    float ratio = ratioc(midi - r.pitch_keycenter);
+    fprintf(stdout, "\nplayback ratio %f gain %f \n**** </%d> *** \n", ratio, gain, midi);
+
+    for (int i = 0; i < size; i++)
     {
-        while (shift-- >= 1)
-        {
-            iterator++;
-        }
-        *buffout++ = lerp(g_tsf->fontSamples[iterator], g_tsf->fontSamples[iterator + 1], shift);
+
+        // *buffout++ = g_tsf->fontSamples[iterator]; //
+        if (i == 0)
+            *buffout++ = 0;
+        else
+            *buffout++ = hermite4(shift, g_tsf->fontSamples[iterator - 1], g_tsf->fontSamples[iterator], g_tsf->fontSamples[iterator + 1], g_tsf->fontSamples[iterator + 2]); //lerp(g_tsf->fontSamples[iterator], g_tsf->fontSamples[iterator+1], shift);
+
         shift += ratio;
 
-        if (iterator > r.loop_end)
-            iterator -= loopr + 1;
+        while (shift >= 1)
+        {
+            shift--;
+            iterator++;
+        }
+        if (iterator >= r.loop_end)
+        {
+            iterator -= loopr;
+        }
+
+        //break;
     }
+}
+//https://www.musicdsp.org/en/latest/Other/93-hermite-interpollation.html
+EMSCRIPTEN_KEEPALIVE
+float hermite4(float frac_pos, float xm1, float x0, float x1, float x2)
+{
+    const float c = (x1 - xm1) * 0.5f;
+    const float v = x0 - x1;
+    const float w = c + v;
+    const float a = w + v + (x2 - x0) * 0.5f;
+    const float b_neg = w + a;
+
+    return ((((a * frac_pos) - b_neg) * frac_pos + c) * frac_pos + x0);
 }
