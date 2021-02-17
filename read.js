@@ -267,7 +267,7 @@ Module['ready'] = new Promise(function(resolve, reject) {
     }
   
    }
-   loadPackage({"files": [{"filename": "/file.sf2", "start": 0, "end": 314640, "audio": 0}], "remote_package_size": 314640, "package_uuid": "d43c3334-1d3f-46ae-88de-9f65a7541a89"});
+   loadPackage({"files": [{"filename": "/file.sf2", "start": 0, "end": 31281186, "audio": 0}], "remote_package_size": 31281186, "package_uuid": "26c2affa-8260-49df-8aae-3fc044148a05"});
   
   })();
   
@@ -1383,16 +1383,16 @@ function updateGlobalBufferAndViews(buf) {
   Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
 }
 
-var STACK_BASE = 5246928,
+var STACK_BASE = 5248992,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 4048;
+    STACK_MAX = 6112;
 
 assert(STACK_BASE % 16 === 0, 'stack must start aligned');
 
 var TOTAL_STACK = 5242880;
 if (Module['TOTAL_STACK']) assert(TOTAL_STACK === Module['TOTAL_STACK'], 'the stack size can no longer be determined at runtime')
 
-var INITIAL_INITIAL_MEMORY = Module['INITIAL_MEMORY'] || 58720256;if (!Object.getOwnPropertyDescriptor(Module, 'INITIAL_MEMORY')) Object.defineProperty(Module, 'INITIAL_MEMORY', { configurable: true, get: function() { abort('Module.INITIAL_MEMORY has been replaced with plain INITIAL_INITIAL_MEMORY (the initial value can be provided on Module, but after startup the value is only looked for on a local variable of that name)') } });
+var INITIAL_INITIAL_MEMORY = Module['INITIAL_MEMORY'] || 222298112;if (!Object.getOwnPropertyDescriptor(Module, 'INITIAL_MEMORY')) Object.defineProperty(Module, 'INITIAL_MEMORY', { configurable: true, get: function() { abort('Module.INITIAL_MEMORY has been replaced with plain INITIAL_INITIAL_MEMORY (the initial value can be provided on Module, but after startup the value is only looked for on a local variable of that name)') } });
 
 assert(INITIAL_INITIAL_MEMORY >= TOTAL_STACK, 'INITIAL_MEMORY should be larger than TOTAL_STACK, was ' + INITIAL_INITIAL_MEMORY + '! (TOTAL_STACK=' + TOTAL_STACK + ')');
 
@@ -4654,19 +4654,28 @@ var _malloc = Module["_malloc"] = createExportWrapper("malloc");
 var _free = Module["_free"] = createExportWrapper("free");
 
 /** @type {function(...*):?} */
+var _ratioc = Module["_ratioc"] = createExportWrapper("ratioc");
+
+/** @type {function(...*):?} */
 var _init_tsf = Module["_init_tsf"] = createExportWrapper("init_tsf");
 
 /** @type {function(...*):?} */
-var _read_sf = Module["_read_sf"] = createExportWrapper("read_sf");
+var _stackbuff = Module["_stackbuff"] = createExportWrapper("stackbuff");
 
 /** @type {function(...*):?} */
-var _get_legion = Module["_get_legion"] = createExportWrapper("get_legion");
+var _read_sf = Module["_read_sf"] = createExportWrapper("read_sf");
 
 /** @type {function(...*):?} */
 var _lerp = Module["_lerp"] = createExportWrapper("lerp");
 
 /** @type {function(...*):?} */
 var _load_sound = Module["_load_sound"] = createExportWrapper("load_sound");
+
+/** @type {function(...*):?} */
+var _hermite4 = Module["_hermite4"] = createExportWrapper("hermite4");
+
+/** @type {function(...*):?} */
+var _callback = Module["_callback"] = createExportWrapper("callback");
 
 /** @type {function(...*):?} */
 var ___errno_location = Module["___errno_location"] = createExportWrapper("__errno_location");
