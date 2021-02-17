@@ -16,7 +16,7 @@ static float pow2over2table[12] = {
     1.6817928305074292,
     1.7817974362806788,
     1.887748625363387};
-
+EMSCRIPTEN_KEEPALIVE
 float ratioc(int rdiff)
 {
     float ratio = 1;
@@ -40,54 +40,24 @@ EMSCRIPTEN_KEEPALIVE
 static tsf *g_tsf;
 
 EMSCRIPTEN_KEEPALIVE
-void init_tsf(char *string)
+void init_tsf()
 {
-    g_tsf = tsf_load_filename("file.sf2");
+    g_tsf = tsf_load_filename("./file.sf2");
+    if(!g_tsf){
+        perror("gtsf not loaded");
+    }
 }
-
+EMSCRIPTEN_KEEPALIVE
+uint8_t* stackbuff(int len){
+    return malloc(len);
+}
 EMSCRIPTEN_KEEPALIVE
 void read_sf(void *buffer, int size)
 {
     g_tsf = tsf_load_memory(buffer, size);
-    printf("fontsamplle size %lu", sizeof(g_tsf->fontSamples));
-    printf("fontsamplle size %lu", sizeof(g_tsf->presetNum));
-}
-
-EMSCRIPTEN_KEEPALIVE
-struct tsf_region get_legion(int presetId, int midi, float velocity)
-{
-
-    struct tsf_region r; /* the preset region we render from*/
-
-    struct tsf_preset p; /* the preset, a preset has a number of regions with differena pitches etc. we vary the playback loop here to make shift to some midi number */
-
-    int rdiff = 128; /*scalar*/ /* integer difference between sample note and note we are trying to produce*/
-
-    p = g_tsf->presets[presetId];
-    for (int j = 0; j < p.regionNum; j++)
-    {
-        if (abs(p.regions[j].pitch_keycenter - midi) > 5)
-            continue;
-
-        if (p.regions[j].hikey < midi)
-            continue;
-        if (p.regions[j].lovel > velocity)
-            continue;
-        if (p.regions[j].hivel < velocity)
-            continue;
-
-        if (abs(midi - p.regions[j].pitch_keycenter) < rdiff)
-        {
-
-            printf("\n*** note: %d ***\npitch center:%d\nspeed lo:%d \nhi %d\nsample rate: %d\n",
-                   midi, p.regions[j].pitch_keycenter, (int)(p.regions[j].lovel), (int)(p.regions[j].hivel), p.regions[j].sample_rate);
-
-            r = p.regions[j];
-
-            rdiff = abs(midi - r.pitch_keycenter);
-        }
+    if(!g_tsf){
+        perror("gtsf not loaded");
     }
-    return r;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -180,4 +150,10 @@ float hermite4(float frac_pos, float xm1, float x0, float x1, float x2)
     const float b_neg = w + a;
 
     return ((((a * frac_pos) - b_neg) * frac_pos + c) * frac_pos + x0);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void callback(int fn_ptr){
+        void (*f)(int) = (void (*)(int))(fn_ptr);
+        f(42);
 }
