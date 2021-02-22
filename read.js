@@ -267,7 +267,7 @@ Module['ready'] = new Promise(function(resolve, reject) {
     }
   
    }
-   loadPackage({"files": [{"filename": "/file.sf2", "start": 0, "end": 31281186, "audio": 0}], "remote_package_size": 31281186, "package_uuid": "26c2affa-8260-49df-8aae-3fc044148a05"});
+   loadPackage({"files": [{"filename": "/file.sf2", "start": 0, "end": 31281186, "audio": 0}], "remote_package_size": 31281186, "package_uuid": "e442ee08-c784-45eb-ac2c-612f351337c7"});
   
   })();
   

@@ -254,7 +254,7 @@ int main(int argc, char**argv)
 
 
 	FILE* amysql=popen("mysql -u root grepawk","w");
-	FILE* mysql = fopen("/dev/stdout","w");
+//	FILE* mysql = fopen("/dev/stdout","w");
 	// fprintf(mysql, "insert into presets (name, id, bankid, presetBagIndex) values \n");
 	insertTable = "insert into presets ";
 	columns = "insert into presets (name, id, bankid, presetBagIndex) values";
@@ -262,12 +262,9 @@ int main(int argc, char**argv)
 	while(size-= 36 > 0){
 		readNstr(file, 20, name);
 		printf("%.20s, %u, %u, %u",name, read16(file),read16(file),read16(file));
-
 		uint16_t* presetId, bankId, presetBagId;
-
 		fread(&chunk, 38, 1 ,file);
-		
-
+	
 	}
 	for (int i = 0; i < size; i += 38)
 	{

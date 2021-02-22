@@ -660,19 +660,19 @@ static void tsf_region_envtosecs(struct tsf_envelope* p, TSF_BOOL sustainIsGain)
 {
 	// EG times need to be converted from timecents to seconds.
 	// Pin very short EG segments.  Timecents don't get to zero, and our EG is
-	// happier with zero values.
-	p->delay   = (p->delay   < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->delay));
-	p->attack  = (p->attack  < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->attack));
-	p->release = (p->release < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->release));
+	// // happier with zero values.
+	// p->delay   = (p->delay   < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->delay));
+	// p->attack  = (p->attack  < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->attack));
+	// p->release = (p->release < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->release));
 
 	// If we have dynamic hold or decay times depending on key number we need
 	// to keep the values in timecents so we can calculate it during startNote
-	if (!p->keynumToHold)  p->hold  = (p->hold  < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->hold));
-	if (!p->keynumToDecay) p->decay = (p->decay < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->decay));
+	// if (!p->keynumToHold)  p->hold  = (p->hold  < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->hold));
+	// if (!p->keynumToDecay) p->decay = (p->decay < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->decay));
 	
-	if (p->sustain < 0.0f) p->sustain = 0.0f;
-	else if (sustainIsGain) p->sustain = tsf_decibelsToGain(-p->sustain / 10.0f);
-	else p->sustain = 1.0f - (p->sustain / 1000.0f);
+	// if (p->sustain < 0.0f) p->sustain = 0.0f;
+	// else if (sustainIsGain) p->sustain = tsf_decibelsToGain(-p->sustain / 10.0f);
+	// else p->sustain = 1.0f - (p->sustain / 1000.0f);
 }
 
 static void tsf_load_presets(tsf* res, struct tsf_hydra *hydra, unsigned int fontSampleCount)

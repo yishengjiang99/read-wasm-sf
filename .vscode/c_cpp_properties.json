@@ -3,8 +3,8 @@
         {
             "name": "Mac",
             "includePath": [
-                "~/grepawk3/emsdk/upstream/emscripten/system/include",
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/Users/yisheng/grepawk3/emsdk/upstream/emscripten/system/include"
             ],
             "defines": [],
             "macFrameworkPath": [

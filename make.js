@@ -16,7 +16,6 @@ console.log(compile_all);
 process.stderr.write(execSync(compile_all).toString());
 var compile_node =
     `emcc read.c \
-    -s ALLOW_TABLE_GROWTH=1 \
     -s TOTAL_MEMORY=600mb \
     -s INITIAL_MEMORY=300mb \
     -s EXTRA_EXPORTED_RUNTIME_METHODS='["cwrap","addOnInit"]' \
