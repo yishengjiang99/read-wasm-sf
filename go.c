@@ -1,17 +1,17 @@
-#include <emscripten/emscripten.h>
+#include <emscripten.h>
 #include <stdio.h>
 #include <stdlib.h>
 typedef struct track
 {
-	uint32_t offset, end, startLoop, endLoop, length;
+	uint32_t offset, end, startLoop, endLoop;
+	uint16_t length;
 	float ratio;
-	float lastOutput;
 } track_t;
 
 static float *fsamples;
 
 float hermite4(float frac_pos, float xm1, float x0, float x1, float x2);
-void render(float *output, track_t *t, int size);
+int render(float *output, track_t *t, int size);
 void initWithPreload();
 
 EMSCRIPTEN_KEEPALIVE
@@ -27,13 +27,12 @@ void initWithPreload()
 	fread(name, 4, 1, fd);
 	fread(name, 4, 1, fd);
 
-	printf("%.4s %u", name, size);
+	fprintf(stdout, "%.4s %u", name, size);
 
 	nsamples = size / 2;
 	samples = (int16_t *)malloc(sizeof(int16_t) * nsamples);
 	fsamples = (float *)malloc(sizeof(float) * nsamples);
 	float *ptr = fsamples;
-	printf("%.4s", name);
 	fread(samples, sizeof(int16_t), nsamples, fd);
 	for (int i = 0; i < nsamples; i++)
 	{
@@ -43,30 +42,33 @@ void initWithPreload()
 }
 
 EMSCRIPTEN_KEEPALIVE
-void render(float *output, track_t *t, int size)
+int render(float *output, track_t *t, int size)
 {
+	float output[128] = *output;
 
 	if (t->length <= 0)
-		return;
+		return -1;
 	int loopr = (t->endLoop - t->startLoop);
 	float shift = 0.0f;
+	int start = t->offset;
 	for (int i = 0; i < size; i++)
 	{
-		*(output + i) += *(fsamples + t->offset);
+		output[i] = output[i] + *(fsamples + start);
 
 		shift += t->ratio;
 
 		while (shift >= 1)
 		{
 			shift--;
-			t->offset++;
+			start++;
 		}
-		if (t->offset >= t->endLoop)
+		if (start >= t->endLoop)
 		{
-			t->offset -= t->endLoop - t->startLoop;
+			start -= (t->endLoop - t->startLoop);
 		}
 	}
-	t->length -= size;
+
+	return t->length;
 }
 
 float hermite4(float frac_pos, float xm1, float x0, float x1, float x2)

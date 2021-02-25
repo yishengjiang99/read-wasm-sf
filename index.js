@@ -1,7 +1,16 @@
-const express = require('express');
-const app = express();
-app.use("/", express.static());
 const fs_1 = require("fs");
+
+const express = require('express');
+
+const app = express();
+app.get("/worker2.js", (req, res) => {
+    res.writeHead(200, { "content-type": "application/javascript" });
+    fs_1.createReadStream("./worker2.js").pipe(res);
+})
+
+
+
+app.use("/", express.static("."));
 const httpsTLS = {
     key: fs_1.readFileSync(process.env.PRIV_KEYFILE),
     cert: fs_1.readFileSync(process.env.CERT_FILE),
