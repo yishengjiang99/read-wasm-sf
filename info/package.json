@@ -1,0 +1,27 @@
+{
+    "name": "bach-cli",
+    "version": "1.0.0",
+    "description": "",
+    "main": "dist/index.js",
+    "scripts": {
+        "test": "ava",
+        "build": "node make"
+    },
+    "bin": {
+        "bach": "dist/index.js"
+    },
+    "author": "Yisheng Jiang",
+    "license": "ISC",
+    "dependencies": {
+        "@tonejs/midi": "^2.0.26",
+        "ava": "^3.15.0"
+    },
+    "ava": {
+        "extensions": [
+            "ts"
+        ],
+        "require": [
+            "ts-node/register"
+        ]
+    }
+}
