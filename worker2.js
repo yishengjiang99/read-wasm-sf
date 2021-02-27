@@ -1,48 +1,62 @@
 importScripts('./go.js');
+importScripts("./dist/track-view.js");
+
+
+const sizeof_track_t = Uint32Array.BYTES_PER_ELEMENT * 4 + Float32Array.BYTES_PER_ELEMENT + Int16Array.BYTES_PER_ELEMENT;
+const polyphony = 16;
 
 let sounds;
 let procPort;
 let trackInfo = {};
 let renderFn;
 let timer;
+let tvs;
+const { readable, writable } = new TransformStream();
+const writer = writable.getWriter();
+onmessage = function(e) {
+    // const data = e.data;
+    const { data: { tracks, midiNote, port, msg } } = e;
+    if (tracks) {
+        loadPresetIfno(tracks);
+    }
+    if (port) {
+        procPort = port;
+        procPort.postMessage({ readable }, [readable]);
+    }
+
+    if (midiNote) {
+        stagePreset(midiNote.track, midiNote.note, midiNote.length);
+        if (!timer && renderFn) timer = setInterval(() => {
+            const buffer = renderFn();
+            writer.write(buffer);
+        }, 60000 / (48000 / 128));
+    }
+    if (msg) {
+        omsg(msg);
+    }
+}
+
 Module.addOnInit(async function() {
     Module._initWithPreload();
     postMessage("init");
-
-    function mallocStruct(byteLength) {
-        const ptr = Module._malloc(byteLength);
-        const rr = Module.HEAPU8.buffer.slice(ptr, ptr + byteLength);
-        const dv = new DataView(rr);
-        return {
-            ptr,
-            dv
-        };
+    let trackListPtr = Module._malloc(sizeof_track_t * polyphony);
+    tvs = [];
+    for (let i = 0; i < 16; i++) {
+        const tv = new TrackView(trackListPtr + i * sizeof_track_t, new DataView(Module.HEAPU8.buffer, trackListPtr + i * sizeof_track_t, sizeof_track_t));
+        tv.length = 0;
+        tvs.push(tv)
     }
-    sounds = new Array(16).fill(mallocStruct(40));
-
     renderFn = function() {
-        const output = Module._malloc(128 * Float32Array.BYTES_PER_ELEMENT);
+        const n = 128 * Float32Array.BYTES_PER_ELEMENT;
+        const output = Module._malloc(n);
+        Module._render(output, trackListPtr);
+        const data = new Float32Array(Module.HEAPF32.buffer, output, n);
+        Module._free(output);
 
-        const arr = new Float32Array(Module.HEAPF32.buffer, output, 128);
-        for (const sound of sounds) {
-            const ratio = sound.dv.getFloat32(20, true);
-            const offset = sound.dv.getUint32(0, true);
-            const length = sound.dv.getUint16(16, true);
-            if (length <= 0) continue;
-            const ll = Module._render(output, sound.ptr, 128);
-            console.log(ll);
-            const offsetAfter = sound.dv.getUint32(0, true);
-            const lengthaff = sound.dv.getUint16(16, true);
-            sound.dv.setUint16(16, length - 128)
-            console.log("ratio", ratio, '\noffsets: ', offset, offsetAfter, "\ntodo", length, lengthaff);
 
-        }
-        // if (procPort) procPort.postMessage({ buffer: arr }, [arr]);
+
     }
 });
-
-
-
 
 
 function stagePreset(track, note, duration) { //presetId, bankId, key, velocity) {
@@ -59,15 +73,14 @@ function stagePreset(track, note, duration) { //presetId, bankId, key, velocity)
     if (preset && preset.sample) {
         const ratio = (Math.pow(2, (preset.sample.originalPitch - note.midi) / 12) * 48000) /
             preset.sample.sampleRate;
-
-        const dv = sounds[track.instrument.channel].dv;
+        const tv = tvs[track.instrument.channel];
         const { start, end, startLoop, endLoop } = preset.sample;
-        dv.setUint32(0, start, true)
-        dv.setUint32(4, end, true)
-        dv.setUint32(8, startLoop, true)
-        dv.setUint32(12, endLoop, true)
-        dv.setUint16(16, length, true);
-        dv.setFloat32(20, ratio, true);
+        tv.length = length;
+        tv.offset = start;
+        tv.end = end;
+        tv.startLoop = startLoop;
+        tv.endLoop = endLoop;
+        tv.ratio = ratio;
     }
 }
 
@@ -98,39 +111,20 @@ async function loadPresetIfno(tracks) {
 
 
 
-onmessage = function(e) {
-    // const data = e.data;
-    const { data: { tracks, midiNote, port, msg } } = e;
-    if (tracks) {
-        loadPresetIfno(tracks);
-    }
-    if (port) procPort = port;
-    if (midiNote) {
-        stagePreset(midiNote.track, midiNote.note, midiNote.length);
-        if (!timer) {
-            timer = setInterval(renderFn, 60000 / (48000 / 128));
-        }
-    }
-    if (msg) {
-        switch (msg) {
-            case 'done':
-                clearInterval(timer);
-                break;
-            default:
-                break;
-        }
-    }
-    //     if (!renderFn) {
-    //         init().then(ret => {
-    //             postMessage("ready");
-    //             renderFn = ret;
-    //         }).catch(e => console.error(e));
-    //     }
-}
 
 function presetIndex(t) {
     const bankId = t.instrument.percussion ? 128 : 0;
     const presetId = t.instrument.number;
     const index = presetId + (bankId << 2);
     return index;
+}
+
+function omsg(msg) {
+    switch (msg) {
+        case 'done':
+            clearInterval(timer);
+            break;
+        default:
+            break;
+    }
 }

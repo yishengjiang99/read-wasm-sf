@@ -1,24 +1,40 @@
-class Proc extends AudioWorkletProcessor {
+const chunk = 128 * 4;
+
+class Proc5 extends AudioWorkletProcessor {
     constructor() {
         super();
         this.buffer = [];
+        this.port.onmessage = async({ data: { readable, msg } }) => {
+            if (readable) {
+                const reader = readable.getReader();
 
-
-        this.port.onmessage = ({ buffer }) => {
-            this.buffer.push(buffer);
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    while (value && value.length) {
+                        const b = value.slice(0, chunk);
+                        if (b.byteLength < 0) {
+                            let padded = new Uint8Array(chunk).fill(0);
+                            padded.set(b);
+                            this.buffer.push(padded);
+                        } else {
+                            this.buffer.push(b);
+                        }
+                    }
+                }
+            }
         }
-        this.port.postMessage("hi")
+        this.port.postMessage({ msg: 'proc inited' })
     }
-
-    process(inputList, outputList, parameters) {
-        /* using the inputs (or not, as needed), write the output
-           into each of the outputs */
-        if (this.buffer.length) {
-            outputList[0][0] = this.buffer.shift();
-
+    process(_inputs, outputs, _parameters) {
+        if (this.buffer.length == 0) return true;
+        const ob = this.buffers.shift();
+        const dv = new DataView(ob.buffer);
+        for (let i = 0; i < 128; i++) {
+            outputs[0][0][i] = dv.getFloat32(i * 4, true);
         }
         return true;
     }
 
 }
-registerProcessor("proc4", Proc);
+registerProcessor("proc5", Proc5);

@@ -8,9 +8,9 @@ export async function preload(url) {
     const trackInfos = []
     let cache = {};
     async function* gen(tracks) {
-        while (tracks.length) {
+        for(let i=0; i<tracks.length;i++){
 
-            const t = tracks.shift();
+            const t = tracks[i];
             const url = `./info/preset_${t.instrument.percussion ? 128 : 0}_${t.instrument.number
                 }.json`;
             if (cache[url]) yield cache[url];
