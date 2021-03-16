@@ -1,7 +1,6 @@
 const { execSync } = require("child_process");
 const { readFileSync, writeFile, existsSync } = require("fs");
 
-
 // var compile_all =
 //     `emcc read.c \
 //     --preload-file file.sf2 \
@@ -21,20 +20,20 @@ const { readFileSync, writeFile, existsSync } = require("fs");
 //     -s EXTRA_EXPORTED_RUNTIME_METHODS='["cwrap","addOnInit"]' \
 //     -o readnode.js`;
 
-
 // console.log(compile_node);
 // process.stderr.write(execSync(compile_node).toString());
 
-
 require("child_process").execSync(
-    `emcc go.c \
+  `emcc go.c \
+  --js-library libcall.js \
     --preload-file file.sf2 \
     -s ASSERTIONS=1 \
     -g4 \
-    -fsanitize=undefined \
-    -s TOTAL_MEMORY=344mb \
+    -fsanitize=address \
+    -s TOTAL_MEMORY=500mb \
     -s ABORTING_MALLOC=0 \
     -s EXPORTED_FUNCTIONS='["_malloc","_initWithPreload"]' \
-    -s EXTRA_EXPORTED_RUNTIME_METHODS='["cwrap","addOnInit"]' \
-    --source-map-base /fff/ \
-    -o go.js`);
+    -s EXTRA_EXPORTED_RUNTIME_METHODS='["writeArrayToMemory","cwrap","addOnInit"]' \
+    --source-map-base /fff/dist/ \
+    -o dist/go.js`
+);

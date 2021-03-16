@@ -1,133 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="utf-8" />
     <title>Mocha</title>
+    <script></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="mocha.css" />
-</head>
+  </head>
 
-<body>
+  <body>
+    <canvas
+      style="
+        position: fixed;
+        top: 100px;
+        left: 100px;
+        height: 570px;
+        width: 1024px;
+      "
+    ></canvas>
     <div id="mocha"></div>
     <button>fdafd</button>
     <button>btn2</button>
     <pre></pre>
-    <script src='./go.js'></script>
-    <script src='./dist/track-view.js'></script>
-    <script>
-        console.log('sss')
-        let ctx, tvs;
-        const pre = document.querySelector("pre");
+    <script src="./dist/midi.js"></script>
+    <script src="./dist/track-view.js"></script>
 
-        const sizeof_track_t = Uint32Array.BYTES_PER_ELEMENT * 4 + Float32Array.BYTES_PER_ELEMENT + Int16Array.BYTES_PER_ELEMENT;
-        const polyphony = 16;
+    <script src="./dist/go.js"></script>
 
-        function testSampl() {
-            const PTR = Module._malloc(48000)
-            Module._getSample(PTR, 1000, 48000)
-            const data = new Float32Array(Module.HEAPF32.buffer, PTR, 48000);
-            const ab = new AudioBuffer({
-                numberOfChannels: 1,
-                length: 48000,
-                sampleRate: 48000
-            });
-            ab.copyToChannel(data, 0);
-            const abs = new AudioBufferSourceNode(ctx, {
-                buffer: ab
-            });
-            const split = new ChannelSplitterNode(ctx, {
-                numberOfOutputs: 1,
-                numberOfChannels: 2
-            });
-            const pan = new StereoPannerNode(ctx, {
-                pan: -.5
-            })
-
-            abs.connect(split).connect(ctx.destination)
-            abs.start();
-        }
-        Module.addOnInit(() => {
-
-            console.log('s');
-            Module._initWithPreload();
-            let trackListPtr = Module._malloc(sizeof_track_t * polyphony);
-            tvs = [];
-            for (let i = 0; i < 16; i++) {
-                const tv = new TrackView(trackListPtr + i * sizeof_track_t, new DataView(Module.HEAPU8.buffer, trackListPtr + i * sizeof_track_t, sizeof_track_t));
-                tv.length = 0;
-                tvs.push(tv)
-            }
-        });
-
-        function stagePreset(track, note, duration) { //presetId, bankId, key, velocity) {
-            const index = presetIndex(track);
-            length = ~~(duration * 48000)
-
-            const preset = trackInfo[index].zones
-                .filter((t) =>
-                    t.velRange.lo < note.velocity * 0x7f &&
-                    t.velRange.hi >= note.velocity * 0x7f &&
-                    t.keyRange.hi >= note.midi && t.keyRange.lo <= note.midi
-                )[0];
-
-            if (preset && preset.sample) {
-                const ratio = (Math.pow(2, (preset.sample.originalPitch - note.midi) / 12) * 48000) /
-                    preset.sample.sampleRate;
-                const tv = tvs[track.instrument.channel];
-                const {
-                    start,
-                    end,
-                    startLoop,
-                    endLoop
-                } = preset.sample;
-                tv.length = length;
-                tv.offset = start;
-                tv.end = end;
-                tv.startLoop = startLoop;
-                tv.endLoop = endLoop;
-                tv.ratio = ratio;
-            }
-        }
-
-
-        function presetIndex(t) {
-            const bankId = t.instrument.percussion ? 128 : 0;
-            const presetId = t.instrument.number;
-            const index = presetId + (bankId << 2);
-            return index;
-        }
-        const btns = document.querySelectorAll("button");
-        btns[0].onclick = () => {
-            if (!ctx) ctx = new AudioContext();
-            testSampl();
-        }
-        btns[1].onclick = () => {
-            fetch("https://api.grepawk.com/node").then(async function(res) {
-                const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
-                let jsonstr = "";
-                while (true) {
-                    const {
-                        done,
-                        value
-                    } = await reader.read();
-                    if (done) break;
-                    if (value) {
-                        const tok = value.split("----------");
-                        while (tok.length > 1) {
-                            jsonstr += tok.shift();
-                            const obj = JSON.parse(jsonstr);
-                            pre.innerHTML = JSON.stringify(obj);
-                            jsonstr = "";
-                        }
-                        jsonstr += tok[0];
-
-                    }
-                }
-            });
-        }
-    </script>
-
-</body>
-
+    <script src="./dist/index.js"></script>
+  </body>
 </html>

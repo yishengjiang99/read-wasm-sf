@@ -1,82 +1,99 @@
-import { preload, start } from './load-midi.js';
 let ctx,
-    proc, tracks, durationTicks, trackInfo,
-    outputs = [];
+  proc,
+  tracks,
+  durationTicks,
+  trackInfo,
+  outputs = [];
 
 function stdout(str) {
-    outputs.push(str);
-    if (outputs.length > 20) outputs.shift();
-    document.querySelector("#mocha").innerHTML = outputs.join("\n");
+  outputs.push(str);
+  if (outputs.length > 20) outputs.shift();
+  document.querySelector("#mocha").innerHTML = outputs.join("\n");
 }
 
-const worker = new Worker("./worker2.js", { type: "module" });
+const worker = new Worker("./worker2.js");
 
 worker.addEventListener("message", (event) => {
-    console.error(`Received message from worker: ${event}`);
+  console.error(`Received message from worker: ${event}`);
 });
 
 worker.addEventListener("messageerror", (event) => {
-    console.error(`Error receiving message from worker: ${event}`);
+  console.error(`Error receiving message from worker: ${event}`);
 });
 worker.postMessage("start");
 
-// preload("song.mid").then((ret) => {
-//     tracks = ret.tracks;
-//     durationTicks = ret.durationTicks;
-//     trackInfo = ret.trackInfos;
-// }).catch(e => {
-//     alert(e.message);
-// })
+async function initCtx() {
+  ctx = new AudioContext();
+  await ctx.audioWorklet.addModule(
+    URL.createObjectURL(
+      new Blob(
+        [
+          `const chunk = 128 * 4;
 
-
-
-
-
+  class Proc5 extends AudioWorkletProcessor {
+      constructor() {
+          super();
+          this.buffer = [];
+          this.port.onmessage = async({ data: { readable, msg } }) => {
+              if (readable) {
+                  const reader = readable.getReader();
+  
+                  while (true) {
+                      const { value, done } = await reader.read();
+                      if (done) break;
+                      while (value && value.length) {
+                          const b = value.slice(0, chunk);
+                          if (b.byteLength < 0) {
+                              let padded = new Uint8Array(chunk).fill(0);
+                              padded.set(b);
+                              this.buffer.push(padded);
+                          } else {
+                              this.buffer.push(b);
+                          }
+                      }
+                  }
+              }
+          }
+          this.port.postMessage({ msg: 'proc inited' })
+      }
+      process(_inputs, outputs, _parameters) {
+          if (this.buffer.length == 0) return true;
+          const ob = this.buffers.shift();
+          const dv = new DataView(ob.buffer);
+          for (let i = 0; i < 128; i++) {
+              outputs[0][0][i] = dv.getFloat32(i * 4, true);
+          }
+          return true;
+      }
+  
+  }
+  registerProcessor("proc5", Proc5);`,
+        ],
+        { type: "application/javascript" }
+      )
+    )
+  ); //.then(() => {
+  proc = new AudioWorkletNode(ctx, "proc5", {
+    numberOfInputs: 6,
+    numberOfOutputs: 1,
+  });
+  proc.port.onmessage = async () => {
+    worker.postMessage({ port: proc.port }, [proc.port]);
+  };
+  proc.connect(ctx.destination);
+}
 const btn = document.querySelector("button");
-btn.addEventListener("click", async function() {
-    ctx = new AudioContext();
-    await ctx.audioWorklet.addModule("./proc.js"); //.then(() => {
-    proc = new AudioWorkletNode(ctx, "proc4", {
-        numberOfInputs: 6,
-        numberOfOutputs: 1,
-        channelCount: [1],
-    });
-    proc.port.onmessage = async() => {
-        worker.postMessage({ port: proc.port }, [proc.port])
-    };
-    proc.connect(ctx.destination);
-    start(tracks, durationTicks, async function onNotesDue(notes) {
-        notes.map(({ note, track }) => {
-            const preset = trackInfos[track.channel]
-                .filter(
-                    (t) =>
-                    t.velRange.lo < note.velocity * 0x7f &&
-                    t.velRange.hi >= note.velocity * 0x7f
-                )
-                .filter(
-                    (t) => t.keyRange.hi >= note.midi && t.keyRange.lo <= note.midi
-                )[0];
-            if (preset && preset.sample) {
-                const ratio = (Math.pow(2, (preset.sample.originalPitch - note.midi) / 12) * 48000) /
-                    preset.sample.sampleRate;
-
-                worker.postMessage({
-                    sample: preset.sample,
-                    channel: track.channel,
-                    ratio: ratio,
-                    length: note.duration * 48000,
-                });
-
-            }
-
-            return preset;
-        });
-
-        await new Promise((resolve) => {
-            setTimeout(resolve, 250);
-        });
-        return 0.25;
-    });
+btn.addEventListener("click", async function () {
+  if (!ctx) await initCtx();
+  worker.postMessage({
+    midiNote: {
+        number: t.instrument.number,
+        percussion: t.instrument.percussion,
+        channel: t.channel,
+      },
+      note: t.notes.shift(),
+    },
+  });
 });
 
 btn.innerHTML = "START";

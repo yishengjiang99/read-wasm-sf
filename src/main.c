@@ -77,13 +77,5 @@ float hermite4(float frac_pos, float xm1, float x0, float x1, float x2)
 	return ((((a * frac_pos) - b_neg) * frac_pos + c) * frac_pos + x0);
 }
 int main()
-
 {
-	readDone
-		.then(() = > {
-			clearInterval(timer);
-		})
-		.catch((e) = > {
-			console.error(e);
-		});
 }
