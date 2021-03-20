@@ -193,34 +193,6 @@ typedef struct
 #define SFGEN_endOper 60
 #define fivezeros 0, 0, 0, 0, 0
 char *generator[60] = {"Gen_StartAddrOfs", "Gen_EndAddrOfs", "Gen_StartLoopAddrOfs", "Gen_EndLoopAddrOfs", "Gen_StartAddrCoarseOfs", "Gen_ModLFO2Pitch", "Gen_VibLFO2Pitch", "Gen_ModEnv2Pitch", "Gen_FilterFc", "Gen_FilterQ", "Gen_ModLFO2FilterFc", "Gen_ModEnv2FilterFc", "Gen_EndAddrCoarseOfs", "Gen_ModLFO2Vol", "Gen_Unused1", "Gen_ChorusSend", "Gen_ReverbSend", "Gen_Pan", "Gen_Unused2", "Gen_Unused3", "Gen_Unused4", "Gen_ModLFODelay", "Gen_ModLFOFreq", "Gen_VibLFODelay", "Gen_VibLFOFreq", "Gen_ModEnvDelay", "Gen_ModEnvAttack", "Gen_ModEnvHold", "Gen_ModEnvDecay", "Gen_ModEnvSustain", "Gen_ModEnvRelease", "Gen_Key2ModEnvHold", "Gen_Key2ModEnvDecay", "Gen_VolEnvDelay", "Gen_VolEnvAttack", "Gen_VolEnvHold", "Gen_VolEnvDecay", "Gen_VolEnvSustain", "Gen_VolEnvRelease", "Gen_Key2VolEnvHold", "Gen_Key2VolEnvDecay", "Gen_Instrument", "Gen_Reserved1", "Gen_KeyRange", "Gen_VelRange", "Gen_StartLoopAddrCoarseOfs", "Gen_Keynum", "Gen_Velocity", "Gen_Attenuation", "Gen_Reserved2", "Gen_EndLoopAddrCoarseOfs", "Gen_CoarseTune", "Gen_FineTune", "Gen_SampleId", "Gen_SampleModes", "Gen_Reserved3", "Gen_ScaleTune", "Gen_ExclusiveClass", "Gen_OverrideRootKey", "Gen_Dummy"};
-short default_gen_vals[60] = {
-	fivezeros,
-	fivezeros,
-	fivezeros,
-	fivezeros,
-	-11500, //SFGEN_delayModEnv 25
-	-11500,
-	-11500,
-	-11500,
-	240,	//sustain vol
-	-11500, //30
-	0,
-	0,
-	-11500, //SFGEN_delayVolEnv 33
-	-11500,
-	-11500,
-	-11500,
-	240, //sustain vol
-	-11500,
-	0,
-	0,
-	-1, //instrument
-	0,
-	127 << 7, //velrange+keyrange
-	127 << 7,
-	fivezeros, fivezeros, fivezeros, fivezeros
-
-};
 
 static phdr *phdrs;
 static pbag *pbags;
@@ -254,7 +226,6 @@ EMSCRIPTEN_KEEPALIVE extern void upload(int n, void *data);
 #endif
 
 void rpdta(FILE *fd);
-
 EMSCRIPTEN_KEEPALIVE
 void rfff()
 {
@@ -423,10 +394,10 @@ void zoneinfo(zone *zz, unsigned short pid, unsigned short key, unsigned short v
 							defaultIbag = k;
 							isInstDefault = 1;
 						}
-						// if (g.operator== SFGEN_velRange && g.val.ranges.hi != 0 &&(g.val.ranges.lo > vel || g.val.ranges.hi < vel))
-						// 	goto nextbag;
-						// if (g.operator== SFGEN_keyRange && g.val.ranges.hi != 0 &&(g.val.ranges.lo > key || g.val.ranges.hi < key))
-						// 	goto nextbag;
+						if (g.operator== SFGEN_velRange && g.val.ranges.hi != 0 &&(g.val.ranges.lo > vel || g.val.ranges.hi < vel))
+							goto nextbag;
+						if (g.operator== SFGEN_keyRange && g.val.ranges.hi != 0 &&(g.val.ranges.lo > key || g.val.ranges.hi < key))
+							goto nextbag;
 						if (g.operator== SFGEN_sampleID)
 						{
 							hasSample = 1;
@@ -449,12 +420,7 @@ void zoneinfo(zone *zz, unsigned short pid, unsigned short key, unsigned short v
 						continue;
 					}
 					zone z = *zz;
-					z.lovel = max(igenset[SFGEN_velRange].val.ranges.lo, pgenset[SFGEN_velRange].val.ranges.lo);
-					z.hivel = min(igenset[SFGEN_velRange].val.ranges.hi, pgenset[SFGEN_velRange].val.ranges.hi);
-					z.lokey = max(igenset[SFGEN_keyRange].val.ranges.lo, pgenset[SFGEN_velRange].val.ranges.lo);
-					z.hivel = min(igenset[SFGEN_keyRange].val.ranges.hi, pgenset[SFGEN_velRange].val.ranges.hi);
-					if (z.hivel < vel || z.lovel > vel || z.hikey < key || z.lokey > key)
-						;
+
 					shdr *samples = shdrs + igenset[SFGEN_sampleID].val.shAmount;
 					printf("\nt\tfound %d", igenset[SFGEN_sampleID].val.shAmount);
 					z.start = samples->dwStart;

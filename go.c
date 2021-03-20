@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "read.h"
+#include "read.c"
 #include <emscripten/emscripten.h>
 
 typedef struct track
@@ -10,13 +10,13 @@ typedef struct track
 	uint32_t offset, end, startLoop, endLoop;
 	float ratio;
 } track_t;
-
+static track_t *tracks;
 static float *fsamples;
 void getSample(float *buf, unsigned int start, unsigned int length);
 float hermite4(float frac_pos, float xm1, float x0, float x1, float x2);
 int render(float *output, track_t *tracks);
 int initWithPreload();
-zone *trackInfo(int pid, int note, int vel);
+zone *trackInfo(int trackid, int pid, int note, int vel, int duration);
 EMSCRIPTEN_KEEPALIVE
 int initWithPreload()
 {
@@ -51,7 +51,7 @@ int initWithPreload()
 	}
 	fprintf(stdout, "%lu", ftell(fdim));
 	rfff();
-
+	tracks = (track_t *)malloc(sizeof(track_t) * 16);
 	return nsamples;
 }
 
@@ -64,10 +64,49 @@ void getSample(float *buf, unsigned int start, unsigned int length)
 		length--;
 	}
 }
+
 EMSCRIPTEN_KEEPALIVE
-zone *trackInfo(int pid, int note, int vel)
+zone *trackInfo(int trackid, int pid, int note, int vel, int duration)
 {
-	return zoneinfo(pid, note, vel);
+
+	/**
+	 *   const index = presetIndex(track);
+  Module._trackInfo(track.instrument.number, note.midi, note.velocity);
+  length = ~~(duration * 48000);
+
+  const preset = trackInfo[index].zones.filter(
+    (t) =>
+      t.velRange.lo < note.velocity * 0x7f &&
+      t.velRange.hi >= note.velocity * 0x7f &&
+      t.keyRange.hi >= note.midi &&
+      t.keyRange.lo <= note.midi
+  )[0];
+
+  if (preset && preset.sample) {
+    const ratio =
+      (Math.pow(2, (preset.sample.originalPitch - note.midi) / 12) * 48000) /
+      preset.sample.sampleRate;
+    const tv = tvs[track.instrument.channel];
+    const { start, end, startLoop, endLoop } = preset.sample;
+    tv.length = length;
+    tv.offset = start;
+    tv.end = end;
+    tv.startLoop = startLoop;
+    tv.endLoop = endLoop;
+    tv.ratio = ratio;
+  }
+}
+*/
+	zone *z = (zone *)malloc(sizeof(zone));
+	zoneinfo(z, pid, note, vel);
+	track_t track = *(tracks + trackid);
+	track.startLoop = z->loopStart;
+	track.endLoop = z->loopEnd;
+	track.offset = z->start;
+	track.end = z->end;
+	track.ratio = 1;
+	track.length = duration * 48000;
+	return z;
 }
 
 #define frameSize 128
